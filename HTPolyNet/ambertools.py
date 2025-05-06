@@ -14,7 +14,7 @@ from HTPolyNet.command import Command
 from HTPolyNet.coordinates import Coordinates
 logger=logging.getLogger(__name__)
 
-def GAFFParameterize(inputPrefix,outputPrefix,input_structure_format='mol2',**kwargs):
+def GAFFParameterize(inputPrefix,charge,outputPrefix,input_structure_format='mol2',**kwargs):
     """GAFFParameterize manages execution of antechamber, tleap, and parmchk2 to generate
     GAFF parameters
 
@@ -22,7 +22,7 @@ def GAFFParameterize(inputPrefix,outputPrefix,input_structure_format='mol2',**kw
     :type inputPrefix: str
     :param outputPrefix: basename of output files
     :type outputPrefix: str
-    :param input_structure_format: format of input structure file, defaults to 'mol2'; 'pdb' is other option        
+    :param input_structure_format: format of input structure file, defaults to 'mol2'; 'pdb' is other option
     :type input_structure_format: str, optional
     :raises parmed.exceptions.GromacsError: if parmed fails
     """
@@ -43,7 +43,7 @@ def GAFFParameterize(inputPrefix,outputPrefix,input_structure_format='mol2',**kw
     groOut=f'{outputPrefix}.gro'
     topOut=f'{outputPrefix}.top'
     itpOut=f'{outputPrefix}.itp'
-    c=Command('antechamber',j=4,fi=input_structure_format,fo='mol2',c=chargemethod,at='gaff',i=new_structin,o=mol2out,pf='Y',nc=0,eq=1,pl=10)
+    c=Command('antechamber',j=4,fi=input_structure_format,fo='mol2',c=chargemethod,at='gaff',i=new_structin,o=mol2out,pf='Y',nc=charge,eq=1,pl=10)
     c.run(quiet=False)
     logger.debug(f'AmberTools> Antechamber generated {mol2out}')
     c=Command('parmchk2',i=mol2out,o=frcmodout,f='mol2',s='gaff')
@@ -88,7 +88,3 @@ def GAFFParameterize(inputPrefix,outputPrefix,input_structure_format='mol2',**kw
     except Exception as m:
         logger.error('Unspecified parmed error')
         raise parmed.exceptions.GromacsError(m)
-        
-    
-
-    

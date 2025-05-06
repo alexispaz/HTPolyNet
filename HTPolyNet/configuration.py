@@ -102,19 +102,19 @@ class Configuration:
             inst.basedict=yaml.safe_load(f)
         if parse: inst.parse(**kwargs)
         return inst
-    
-    def NewMolecule(self,mol_name,molrec={}):
-        """NewMolecule generate and return a new Molecule object with name mol_name and populated via directives in molrec
 
-        :param mol_name: name of new molecule
-        :type mol_name: str
-        :param molrec: dictionary of new molecule directives, defaults to {}
-        :type molrec: dict, optional
-        :return: the new Molecule object
-        :rtype: Molecule
-        """
-        return Molecule.New(mol_name,molrec)
-        
+    # def NewMolecule(self,mol_name,molrec={}):
+    #     """NewMolecule generate and return a new Molecule object with name mol_name and populated via directives in molrec
+    #
+    #     :param mol_name: name of new molecule
+    #     :type mol_name: str
+    #     :param molrec: dictionary of new molecule directives, defaults to {}
+    #     :type molrec: dict, optional
+    #     :return: the new Molecule object
+    #     :rtype: Molecule
+    #     """
+    #     return Molecule.New(mol_name,molrec)
+
     def parse(self,**kwargs):
         """parse self.basedict to set Title, initial_composition, and lists of
            reactions and molecules.
@@ -129,7 +129,7 @@ class Configuration:
         self.parameters=self.basedict
         if not 'ncpu' in self.parameters:
             self.parameters['ncpu']=os.cpu_count()
-    
+
         self.constituents=self.basedict.get('constituents',{})
         rlist=self.basedict.get('reactions',[])
 
@@ -140,11 +140,21 @@ class Configuration:
         self.molecule_report['implied by stereochemistry']=0
         self.molecule_report['implied by symmetry']=0
         for mname,gen in mol_reac_detected:
-            self.molecules[mname]=Molecule.New(mname,gen,self.constituents.get(mname,{}))
+
+            charge=0
+            if gen:
+                for x in gen.reactants.values():
+                    charge+=self.constituents[x].get('charge', 0)
+            else:
+                    charge=self.constituents[mname].get('charge', 0)
+            # print(mname,charge)
+
+            self.molecules[mname]=Molecule.New(mname,charge,gen,self.constituents.get(mname,{}))
+
             for si,S in self.molecules[mname].stereoisomers.items():
                 self.molecules[si]=S
                 self.molecule_report['implied by stereochemistry']+=1
-        
+
         for mname,M in self.molecules.items():
             M.set_sequence_from_moldict(self.molecules)
             logging.debug(f'{mname} seq: {M.sequence}')
@@ -171,15 +181,16 @@ class Configuration:
             else:
                 logger.debug(f'{m}: generator: None')
             logger.debug(f'{m}: zrecs: {M.zrecs}')
-        
+
         self.initial_composition=[]
         for molecule,mrec in self.constituents.items():
-            self.initial_composition.append({'molecule':molecule,'count':mrec.get('count',0)})
-        
+            self.initial_composition.append({'molecule':molecule,'charge':mrec.get('charge',0),'count':mrec.get('count',0)})
+
         for molec in self.initial_composition:
             mname=molec['molecule']
+            charge=molec['charge']
             if not mname in self.molecules:
-                self.molecules[mname]=Molecule.New(mname,None,self.constituents.get(mname,{}))
+                self.molecules[mname]=Molecule.New(mname,charge,None,self.constituents.get(mname,{}))
                 self.molecules[mname].set_sequence_from_moldict(self.molecules)
                 logging.debug(f'{mname} seq: {self.molecules[mname].sequence}')
 

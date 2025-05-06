@@ -2,7 +2,7 @@
 
 .. module:: reaction
    :synopsis: handles Reaction objects
-   
+
 .. moduleauthor: Cameron F. Abrams, <cfa22@drexel.edu>
 
 """
@@ -54,7 +54,7 @@ class Reaction:
             if not label in self.default_directives:
                 logging.debug(f'Ignoring unknown reaction directive "{label}"')
         self.symmetry_versions=[]
-    
+
     def __str__(self):
         retstr=f'Reaction "{self.name}" ({str(self.stage)})\n'
         for i,r in self.reactants.items():

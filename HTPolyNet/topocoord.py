@@ -54,6 +54,7 @@ class TopoCoord:
         :param mol2filename: name of SYBYL MOL2-format coordinate/bonds file, defaults to ''
         :type mol2filename: str, optional
         """
+        self.charge=0
         wrap_coords=kwargs.get('wrap_coords',False)
         self.files={}
         self.files['top']=os.path.abspath(topfilename)
@@ -183,7 +184,7 @@ class TopoCoord:
         grodf['old_reactantName']=grodf['reactantName'].copy()
         logger.debug(f'Mapping {bdf.shape[0]} bonds.')
         premapping_total_charge=self.Topology.total_charge()
-        logger.debug(f'Must compensate for an overcharge of {premapping_total_charge:.4f}')
+        logger.debug(f'Must compensate for an overcharge of {premapping_total_charge:.4f} (target: {self.charge})')
         mapped_inst_atoms=[]
         for b in bdf.itertuples():
             logger.debug(f'Mapping bond {b}')
@@ -291,7 +292,7 @@ class TopoCoord:
             #     logger.debug(ln)
             # add new angles to the system topology
             d=self.Topology.D['angles']
-            self.Topology.D['angles']=pd.concat((d,inst_angles),ignore_index=True)                            
+            self.Topology.D['angles']=pd.concat((d,inst_angles),ignore_index=True)
             # hard check for any nan's in any atom index attribute in any angle
             d=self.Topology.D['angles']
             check=True
@@ -385,8 +386,8 @@ class TopoCoord:
                 raise Exception
             # return temp_pairs
         mapped_inst_atoms=list(set(mapped_inst_atoms))
-        logger.debug(f'System overcharge after mapping: {self.Topology.total_charge():.4f}')
-        self.adjust_charges(atoms=mapped_inst_atoms,overcharge_threshhold=overcharge_threshhold,msg=f'overcharge magnitude exceeds {overcharge_threshhold}')
+        logger.debug(f'System overcharge after mapping: {self.Topology.total_charge():.4f} (target: {self.charge})')
+        self.adjust_charges(atoms=mapped_inst_atoms,overcharge_threshhold=overcharge_threshhold,netcharge=self.charge,msg=f'overcharge magnitude exceeds {overcharge_threshhold}')
 
     def enumerate_1_4_pairs(self,at_idx):
         """enumerate_1_4_pairs enumerate all 1-4 pair interactions resulting from new bonds in at_idx
@@ -460,7 +461,7 @@ class TopoCoord:
         :type template_dict: dict
         :return: 3-tuple: new topology file name, new coordinate file name, list of bonds with atom indices updated to reflect any atom deletions
         :rtype: 3-tuple
-        
+
         """
         explicit_sacH=kwargs.get('explicit_sacH',{})
         template_source=kwargs.get('template_source','internal')

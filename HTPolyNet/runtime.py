@@ -69,7 +69,7 @@ class Runtime:
             'mdrun': 'gmx mdrun'
         },
         'ambertools': {
-            'charge_method': 'gas'
+            'charge_method': 'gas',
         },
         'densification': {
             'initial_density': 200.0,  # kg/m3
@@ -80,7 +80,7 @@ class Runtime:
                 { 'ensemble': 'npt', 'temperature': 300, 'pressure': 10, 'ps': 200 }
             ]
         },
-        'precure': {  
+        'precure': {
             'preequilibration': {
                 'ensemble': 'npt',
                 'temperature': 300,        # K
@@ -506,9 +506,10 @@ class Runtime:
             if not N: continue
             t=deepcopy(M.TopoCoord.Topology)
             logger.debug(f'Merging {N} copies of {M.name}\'s topology into global topology')
-            t.adjust_charges(atoms=t.D['atoms']['nr'].to_list(),desired_charge=0.0,overcharge_threshhold=0.1,msg='')
+            t.adjust_charges(atoms=t.D['atoms']['nr'].to_list(),desired_charge=M.charge,overcharge_threshhold=0.1,msg='')
             t.rep_ex(N)
             TC.Topology.merge(t)
+            TC.charge+=N*M.charge
             already_merged.append(M.name)
         for othermol,M in self.molecules.items():
             if not othermol in already_merged:

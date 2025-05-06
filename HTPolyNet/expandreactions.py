@@ -83,7 +83,7 @@ def bondchain_expand_reactions(molecules:MoleculeDict):
                 R.stage=reaction_stage.param
                 R.name=new_mname.lower()
                 R.product=new_mname
-                newP=Molecule.New(R.product,R).set_sequence_from_moldict(molecules)
+                newP=Molecule.New(R.product,m.charge+d.charge,R).set_sequence_from_moldict(molecules)
                 newP.set_origin('unparameterized')
                 extra_molecules[R.product]=newP
                 logger.debug(f'monomer atom {m.name}_{h_name} will attack dimer atom {d.name}[{d.sequence[0]}1_{t_name}] -> {new_mname}:')
@@ -115,7 +115,7 @@ def bondchain_expand_reactions(molecules:MoleculeDict):
                 new_rxnname=new_mname.lower()
                 R.name=new_rxnname
                 R.product=new_mname
-                newP=Molecule.New(R.product,R).set_sequence_from_moldict(molecules)
+                newP=Molecule.New(R.product,m.charge+d.charge,R).set_sequence_from_moldict(molecules)
                 newP.set_origin('unparameterized')
                 extra_molecules[R.product]=newP
                 logger.debug(f'dimer atom {d.name}[{d.sequence[1]}2_{h_name}] will attack monomer atom {m.name}_{t_name}-> {new_mname}:')
@@ -143,7 +143,7 @@ def bondchain_expand_reactions(molecules:MoleculeDict):
                 R.product=new_mname
                 R.name=R.product.lower()
                 # newP=Molecule(name=R.product,generator=R)
-                newP=Molecule.New(R.product,R).set_sequence_from_moldict(molecules)
+                newP=Molecule.New(R.product,dl.charge+dr.charge,R).set_sequence_from_moldict(molecules)
                 newP.set_origin('unparameterized')
                 extra_molecules[R.product]=newP
                 logger.debug(f'dimer atom {dr.name}-{dr.sequence[1]}2_{h_name} will attack dimer atom {dl.name}-{dl.sequence[0]}1_{t_name} -> {new_mname}:')

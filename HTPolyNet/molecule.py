@@ -2,7 +2,7 @@
 
 .. module:: molecule
    :synopsis: manages generation of molecular templates
-   
+
 .. moduleauthor: Cameron F. Abrams, <cfa22@drexel.edu>
 
 """
@@ -117,12 +117,13 @@ def yield_bonds_as_df(R:Reaction,TC:TopoCoord,resid_mapper):
     return bdf
 
 class Molecule:
-    def __init__(self,name='',generator:Reaction=None,origin:str=None):
+    def __init__(self,name='',charge:int=0,generator:Reaction=None,origin:str=None):
         self.name=name
         self.parentname=name # stereoisomer parent
         self.TopoCoord=TopoCoord()
         self.generator:Reaction=generator
         self.sequence=[]
+        self.charge=charge
         self.origin=origin
         self.reaction_bonds:ReactionBondList=[]
         self.bond_templates:BondTemplateList=[]
@@ -136,7 +137,7 @@ class Molecule:
         self.is_reactant=False
 
     @classmethod
-    def New(cls,mol_name,generator:Reaction,molrec={}):
+    def New(cls,mol_name,charge,generator:Reaction,molrec={}):
         """New generates a new, partially populated Molecule based on directives in the configuration input
 
         :param mol_name: name of molecule
@@ -148,7 +149,7 @@ class Molecule:
         :return: a new Molecule object
         :rtype: Molecule
         """
-        M=cls(name=mol_name)
+        M=cls(name=mol_name,charge=charge)
         M.generator=generator
         if not molrec: return M
         M.symmetry_relateds=molrec.get('symmetry_equivalent_atoms',[])
@@ -163,6 +164,7 @@ class Molecule:
                     if not sc_copy in extra_stereocenters:
                         extra_stereocenters.extend(sc_copy)
         M.stereocenters.extend(extra_stereocenters)
+        logger.debug(f'{M.name} charge: {M.charge}')
         logger.debug(f'{M.name} stereocenters: {M.stereocenters}')
         # generate shells for new stereoisomers
         M.create_new_stereoisomers()
@@ -233,7 +235,7 @@ class Molecule:
             thisseq.extend(moldict[parentname].determine_sequence(moldict))
             # logger.debug(thisseq)
         return thisseq
-    
+
     def set_sequence_from_moldict(self,moldict):
         """set_sequence_from_moldict set the sequence of this molecule using the recursive determine_sequence method
 
@@ -275,9 +277,9 @@ class Molecule:
         for x in sseq:
             s=''.join([str(_) for _ in x])
             mname=f'{basename}{s}'
-            self.stereoisomers[mname]=Molecule.New(mname,None)
+            self.stereoisomers[mname]=Molecule.New(mname,self.charge,None)
             self.stereoisomers[mname].parentname=self.name
-            
+
     def initialize_molecule_rings(self):
         """initialize_molecule_rings generates the dictionary of rings
 
@@ -381,7 +383,7 @@ class Molecule:
         assert os.path.exists(f'{self.name}.{input_structure_format}'),f'Cannot parameterize molecule {self.name} without {self.name}.{input_structure_format} as input'
         if outname=='':
             outname=f'{self.name}'
-        GAFFParameterize(self.name,outname,input_structure_format=input_structure_format,**kwargs)
+        GAFFParameterize(self.name,self.charge,outname,input_structure_format=input_structure_format,net_charge=self.charge,**kwargs)
         self.load_top_gro(f'{outname}.top',f'{outname}.gro',mol2filename=f'{outname}.mol2',wrap_coords=False)
         self.initialize_molecule_rings()
         self.TopoCoord.write_tpx(f'{outname}.tpx')
@@ -1101,7 +1103,7 @@ def generate_stereo_reactions(RL:ReactionList,MD:MoleculeDict):
     :return: number of new reactions/molecular products created
     :rtype: int
     """
-    # any reaction with one or more reactant with one or more stereoisomers 
+    # any reaction with one or more reactant with one or more stereoisomers
     # generates new "build" reactions using the stereoisomer as a reactant
     # in place
     adds=0
@@ -1128,12 +1130,12 @@ def generate_stereo_reactions(RL:ReactionList,MD:MoleculeDict):
             nR.reactants={k:v for k,v in zip(reactant_keys,c)}
             # MD[R.product].stereoisomers[nR.product]=Molecule.NewCopy(MD[R.product],nR.product)
             # add resulting product to global molecule dict so that it will be generated
-            MD[nR.product]=Molecule.New(nR.product,nR)
+            MD[nR.product]=Molecule.New(nR.product,Prod.charge,nR)
             adds+=1
             MD[nR.product].sequence=MD[R.product].sequence
             MD[nR.product].parentname=R.product
             Prod.stereoisomers[nR.product]=MD[nR.product]
-            logger.debug(c)                
+            logger.debug(c)
             # new_reactions.append(nR)
             sidx+=1
             terminal_reactions.append(nR)
@@ -1194,7 +1196,7 @@ def generate_symmetry_reactions(RL:ReactionList,MD:MoleculeDict):
             pname=generate_product_name(newR)
             if len(pname)==0:
                 pname=R.product+f'-{idx}'
-            newR.product=pname 
+            newR.product=pname
             newR.stage=R.stage
             logger.debug(f'Primary:')
             for ln in str(newR).split('\n'): logger.debug(ln)
@@ -1233,7 +1235,7 @@ def generate_symmetry_reactions(RL:ReactionList,MD:MoleculeDict):
                 jdx+=1
                 RL.append(nooR)
                 tail_adds+=1
-                MD[nooR.product]=Molecule.New(nooR.product,nooR)
+                MD[nooR.product]=Molecule.New(nooR.product,Prod.charge,nooR)
                 MD[nooR.product].set_origin('symmetry_product')
                 MD[nooR.product].set_sequence_from_moldict(MD)
             idx+=1
